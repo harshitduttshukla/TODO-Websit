@@ -1,0 +1,32 @@
+.about {
+    margin: 50px auto;
+    max-width: 800px;
+    text-align: center;
+    line-height: 1.6;
+    padding: 20px;
+  }
+  
+  .about h1, .about h2 {
+    margin-bottom: 20px;
+  }
+  
+  .about p {
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .about ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .about ul li {
+    font-size: 16px;
+    margin: 10px 0;
+  }
+  
+  .about ul li::before {
+    content: '✓ ';
+    color: green;
+  }
+  
