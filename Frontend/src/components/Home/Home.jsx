@@ -3,88 +3,120 @@ import UserContext from '../../context/UserContext';
 import axios from 'axios';
 
 function Home() {
-  const [inputvalue, setinputvalue] = useState('');
-  const [todos, setToDo] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [todos, setTodos] = useState([]);
   const [editIndex, setEditIndex] = useState(-1);
-  const [editvalue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState('');
   const [filter, setFilter] = useState('All');
-
   const { setUser } = useContext(UserContext);
 
   useEffect(() => {
-    async function fetchTodos() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/todos');
-        setToDo(response.data);
-      } catch (error) {
-        console.log('Error fetching todos:', error);
+    const fetchTodos = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found, user might not be logged in.');
+        return;
       }
-    }
+      try {
+        const response = await axios.get('http://localhost:3000/api/todos', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setTodos(response.data);
+      } catch (error) {
+        console.error('Error fetching todos:', error.response ? error.response.data : error.message);
+      }
+    };
 
     fetchTodos();
   }, []);
 
-  function handerlaer(e) {
-    setinputvalue(e.target.value);
-  }
+  const handleAddTodo = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No token found, cannot add todo.');
+      return;
+    }
 
-  async function handleAddTodo() {
-    if (inputvalue.trim()) {
-      const newTodo = { text: inputvalue, completed: false };
+    if (inputValue.trim()) {
+      const newTodo = { text: inputValue, completed: false };
       try {
-        const response = await axios.post('http://localhost:3000/api/todos', newTodo);
-        setToDo([...todos, response.data]);
-        setinputvalue('');
+        const response = await axios.post('http://localhost:3000/api/todos', newTodo, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setTodos((prevTodos) => [...prevTodos, response.data]);
+        setInputValue('');
       } catch (error) {
-        console.log('Error adding to-do:', error);
+        console.error('Error adding todo:', error.response ? error.response.data : error.message);
       }
     }
-  }
+  };
 
-  function handleToggleTodo(index) {
-    const updateToDos = todos.map((todo, i) =>
+  const handleToggleTodo = (index) => {
+    const updatedTodos = todos.map((todo, i) =>
       i === index ? { ...todo, completed: !todo.completed } : todo
     );
-    setToDo(updateToDos);
-  }
+    setTodos(updatedTodos);
+  };
 
-  function handleEdit(index) {
+  const handleEdit = (index) => {
     setEditIndex(index);
     setEditValue(todos[index].text);
-  }
+  };
 
-  function handleSaveEdit(index) {
+  const handleSaveEdit = async (index) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No token found, cannot save todo.');
+      return;
+    }
+
     const todoToUpdate = todos[index];
-    axios.put(`http://localhost:3000/api/todos/${todoToUpdate._id}`, {
-      text: editvalue,
-      completed: todoToUpdate.completed,
-    })
-      .then((response) => {
-        const updatedTodos = todos.map((todo, i) =>
-          i === index ? response.data : todo
-        );
-        setToDo(updatedTodos);
-        setEditIndex(-1);
-      })
-      .catch((error) => {
-        console.log('Error updating todo:', error);
+    try {
+      const response = await axios.put(`http://localhost:3000/api/todos/${todoToUpdate._id}`, {
+        text: editValue,
+        completed: todoToUpdate.completed,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-  }
 
-  function handleDeleteTodo(id) {
-    axios.delete(`http://localhost:3000/api/todos/${id}`)
-      .then((response) => {
-        console.log(response.data.message);
-        setToDo(todos.filter((todo) => todo._id !== id));
-      })
-      .catch((error) => {
-        console.log('Error deleting to-do:', error);
+      const updatedTodos = todos.map((todo, i) =>
+        i === index ? response.data : todo
+      );
+      setTodos(updatedTodos);
+      setEditIndex(-1);
+    } catch (error) {
+      console.error('Error updating todo:', error.response ? error.response.data : error.message);
+    }
+  };
+
+  const handleDeleteTodo = async (id) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('No token found, cannot delete todo.');
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:3000/api/todos/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-  }
+      setTodos((prevTodos) => prevTodos.filter((todo) => todo._id !== id));
+    } catch (error) {
+      console.error('Error deleting todo:', error.response ? error.response.data : error.message);
+    }
+  };
 
-  function handleFilterChange(newFilter) {
+  const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
-  }
+  };
 
   const filteredTodos = todos.filter((todo) => {
     if (filter === 'Active') {
@@ -108,9 +140,9 @@ function Home() {
         <input
           type="text"
           placeholder="Add a new task..."
-          value={inputvalue}
-          onChange={handerlaer}
-          className="border border-gray-300 rounded-lg p-2 w-full mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          className="border border-gray-300 rounded-lg p-2 w-full mb-4"
         />
         <button
           onClick={handleAddTodo}
@@ -120,24 +152,9 @@ function Home() {
         </button>
 
         <div className="flex justify-between mt-4 mb-4">
-          <button
-            onClick={() => handleFilterChange('All')}
-            className="text-yellow-600 hover:underline"
-          >
-            All
-          </button>
-          <button
-            onClick={() => handleFilterChange('Active')}
-            className="text-yellow-600 hover:underline"
-          >
-            Active
-          </button>
-          <button
-            onClick={() => handleFilterChange('Completed')}
-            className="text-yellow-600 hover:underline"
-          >
-            Completed
-          </button>
+          <button onClick={() => handleFilterChange('All')} className="text-yellow-600 hover:underline">All</button>
+          <button onClick={() => handleFilterChange('Active')} className="text-yellow-600 hover:underline">Active</button>
+          <button onClick={() => handleFilterChange('Completed')} className="text-yellow-600 hover:underline">Completed</button>
         </div>
 
         <ul>
@@ -153,7 +170,7 @@ function Home() {
                 <>
                   <input
                     type="text"
-                    value={editvalue}
+                    value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     className="border border-gray-300 rounded-lg p-1 flex-1"
                   />
@@ -166,9 +183,7 @@ function Home() {
                 </>
               ) : (
                 <>
-                  <span
-                    className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : ''}`}
-                  >
+                  <span className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : ''}`}>
                     {todo.text}
                   </span>
                   <button

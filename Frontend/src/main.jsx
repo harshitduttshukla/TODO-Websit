@@ -7,6 +7,8 @@ import About from './components/About/About.jsx'
 import Home from './components/Home/Home.jsx'
 import UserContextProvider from './context/UserContextProvider'
 import Signup from './components/Signup/Signup.jsx'
+import Signin from './components/Login/Signin.jsx'
+
 
 
 const router = createBrowserRouter(
@@ -16,6 +18,7 @@ const router = createBrowserRouter(
       <Route path='about' element= {<About/>}/>
       <Route path='' element= {<Home/>}/>
       <Route path='Signup' element={ <Signup/>}/>
+      <Route path='Signin' element={ <Signin/>}/>
        </Route>
   )
 )
